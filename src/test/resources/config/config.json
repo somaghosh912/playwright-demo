@@ -1,0 +1,26 @@
+{
+  "env": "qa",
+  "web": {
+    "baseUrl": "https://www.saucedemo.com",
+    "browser": "chromium",
+    "headless": false,
+    "timeoutMs": 30000
+  },
+  "api": {
+    "baseUrl": "https://postman-echo.com/get",
+    "apikey": "free_user_3EdHwuAtVmZnE9OKuTE5hpikZmV"
+  },
+  "mobile": {
+    "platform": "android",
+    "appiumUrl": "http://127.0.0.1:4723",
+    "capsFile": "src/test/resources/config/caps-android.json"
+  },
+  "data": {
+    "json": "src/test/resources/testdata/testdata.json",
+    "yaml": "src/test/resources/testdata/testdata.yaml",
+    "excel": "src/test/resources/testdata/testdata.xlsx"
+  },
+  "locators": {
+    "file": "src/test/resources/locators/locators.json"
+  }
+}

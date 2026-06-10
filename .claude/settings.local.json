@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Windows/System32/cmd.exe /c \"del /Q C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\locators\\\\locators.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\config.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\qa.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\uat.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\extent.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\extent-config.xml\")",
+      "Bash(/c/Windows/System32/cmd.exe //c \"del C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\config.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\qa.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\config\\\\uat.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\extent.properties C:\\\\Workspace\\\\playwright-demo\\\\src\\\\test\\\\resources\\\\extent-config.xml\")",
+      "Bash(/c/Windows/System32/cmd.exe //c \"del C:\\\\Workspace\\\\playwright-demo\\\\src\\\\main\\\\java\\\\org\\\\example\\\\config\\\\FrameworkConfig.java\")"
+    ]
+  }
+}

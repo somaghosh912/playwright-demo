@@ -1,0 +1,9 @@
+{
+  "web": {
+    "baseUrl": "https://www.saucedemo.com",
+    "headless": false
+  },
+  "api": {
+    "baseUrl": "https://postman-echo.com/get"
+  }
+}

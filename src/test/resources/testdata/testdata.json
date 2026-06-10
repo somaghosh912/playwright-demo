@@ -1,0 +1,29 @@
+{
+  "users": {
+    "default": {
+      "username": "standard_user",
+      "password": "secret_sauce"
+    },
+    "locked": {
+      "username": "locked_out_user",
+      "password": "secret_sauce"
+    }
+  },
+  "products": {
+    "backpack": {
+      "id": "sauce-backpack",
+      "name": "Sauce Labs Backpack"
+    },
+    "bikeLight": {
+      "id": "sauce-bike-light",
+      "name": "Sauce Labs Bike Light"
+    }
+  },
+  "apiUsers": {
+    "default": {
+      "id": "4",
+      "email": "soma",
+      "password": "cityslicka"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+users:
+  default:
+    username: standard_user
+    password: secret_sauce
+products:
+  backpack:
+    id: sauce-backpack
+    name: Sauce Labs Backpack
+apiUsers:
+  default:
+    id: "4"
+    email: eve.holt@reqres.in
+    password: cityslicka

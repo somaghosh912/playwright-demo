@@ -1,0 +1,9 @@
+{
+  "web": {
+    "baseUrl": "https://uat.saucedemo.com",
+    "headless": false
+  },
+  "api": {
+    "baseUrl": "https://uat.reqres.in"
+  }
+}
