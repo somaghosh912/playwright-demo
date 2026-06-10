@@ -1,12 +1,12 @@
 package org.example.listener;
 
 import io.cucumber.plugin.event.*;
-import io.cucumber.plugin.Plugin;
 import io.qameta.allure.Allure;
 import io.qameta.allure.AllureLifecycle;
 import org.example.utils.TestLogger;
 import org.example.utils.ScreenshotManager;
-
+import io.cucumber.plugin.ConcurrentEventListener;
+import io.cucumber.plugin.event.*;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -18,23 +18,17 @@ import java.util.UUID;
  * Integrates Cucumber scenarios with Allure reporting
  * Automatically embeds screenshots and attachments
  */
-public class AllureReportListener implements Plugin {
-
-    private final AllureLifecycle lifecycle = Allure.getLifecycle();
-    private static final Map<String, String> scenarioUuids = new HashMap<>();
-    private final ThreadLocal<String> currentScenarioUuid = ThreadLocal.withInitial(() -> null);
+public class AllureReportListener implements ConcurrentEventListener {
 
     /**
      * Set event publisher for Cucumber events
      */
     @Override
     public void setEventPublisher(EventPublisher publisher) {
-        publisher.registerHandlerFor(TestRunStarted.class, this::handleTestRunStarted);
         publisher.registerHandlerFor(TestCaseStarted.class, this::handleTestCaseStarted);
         publisher.registerHandlerFor(TestCaseFinished.class, this::handleTestCaseFinished);
         publisher.registerHandlerFor(TestStepStarted.class, this::handleTestStepStarted);
         publisher.registerHandlerFor(TestStepFinished.class, this::handleTestStepFinished);
-        publisher.registerHandlerFor(TestRunFinished.class, this::handleTestRunFinished);
     }
 
     /**
@@ -48,75 +42,53 @@ public class AllureReportListener implements Plugin {
      * Handle test case started
      */
     private void handleTestCaseStarted(TestCaseStarted event) {
+
         String scenarioName = event.getTestCase().getName();
-        String scenarioId = UUID.randomUUID().toString();
-        
-        currentScenarioUuid.set(scenarioId);
-        scenarioUuids.put(scenarioName, scenarioId);
-        
-        // Start Allure test
-        lifecycle.startTestCase(scenarioId);
-        
-        // Set test name and description
-        io.qameta.allure.model.TestCase testCase = lifecycle.getCurrentTestCase().get();
-        if (testCase != null) {
-            testCase.setName(scenarioName);
-            testCase.setDescription("Scenario: " + scenarioName);
-        }
-        
-        // Add labels
-        addLabels(event);
-        
-        TestLogger.logInfo("Allure: Test case started - %s [%s]", scenarioName, scenarioId);
+
+        TestLogger.logInfo(
+                "Allure: Scenario Started - %s",
+                scenarioName);
+
+        addTextAttachment(
+                "Scenario Information",
+                "Scenario: " + scenarioName);
     }
 
     /**
      * Handle test case finished
      */
     private void handleTestCaseFinished(TestCaseFinished event) {
+
         String scenarioName = event.getTestCase().getName();
-        
-        // Update test result status
-        if (event.getResult().getStatus() == Status.PASSED) {
-            lifecycle.updateTestCase(tc -> tc.setStatus(io.qameta.allure.model.Status.PASSED));
-            TestLogger.logInfo("Allure: Test case passed - %s", scenarioName);
-        } else if (event.getResult().getStatus() == Status.FAILED) {
-            lifecycle.updateTestCase(tc -> tc.setStatus(io.qameta.allure.model.Status.FAILED));
-            
-            // Add failure details
+
+        if (event.getResult().getStatus() == Status.FAILED) {
+
             if (event.getResult().getError() != null) {
-                addFailureDetails(event.getResult().getError());
+
+                addTextAttachment(
+                        "Failure Details",
+                        getStackTrace(event.getResult().getError()));
             }
-            
-            // Embed failure screenshot
+
             embedFailureScreenshot();
-            
-            TestLogger.logInfo("Allure: Test case failed - %s", scenarioName);
-        } else if (event.getResult().getStatus() == Status.SKIPPED) {
-            lifecycle.updateTestCase(tc -> tc.setStatus(io.qameta.allure.model.Status.SKIPPED));
-            TestLogger.logInfo("Allure: Test case skipped - %s", scenarioName);
         }
-        
-        // Stop test case
-        lifecycle.stopTestCase();
-        currentScenarioUuid.remove();
+
+        TestLogger.logInfo(
+                "Allure: Scenario Finished - %s [%s]",
+                scenarioName,
+                event.getResult().getStatus());
     }
 
     /**
      * Handle test step started
      */
     private void handleTestStepStarted(TestStepStarted event) {
-        if (event.getTestStep() instanceof PickleStepTestStep) {
-            PickleStepTestStep step = (PickleStepTestStep) event.getTestStep();
-            String stepText = step.getStep().getText();
-            
-            // Start step in Allure
-            String stepId = UUID.randomUUID().toString();
-            lifecycle.startStep(stepId, new io.qameta.allure.model.StepResult()
-                .setName(stepText)
-                .setStart(System.currentTimeMillis()));
-            
-            TestLogger.logDebug("Allure: Step started - %s", stepText);
+
+        if (event.getTestStep() instanceof PickleStepTestStep step) {
+
+            TestLogger.logDebug(
+                    "Step Started : %s",
+                    step.getStep().getText());
         }
     }
 
@@ -124,38 +96,28 @@ public class AllureReportListener implements Plugin {
      * Handle test step finished
      */
     private void handleTestStepFinished(TestStepFinished event) {
-        if (event.getTestStep() instanceof PickleStepTestStep) {
-            PickleStepTestStep step = (PickleStepTestStep) event.getTestStep();
+
+        if (event.getTestStep() instanceof PickleStepTestStep step) {
+
             String stepText = step.getStep().getText();
-            
-            // Update step status
-            if (event.getResult().getStatus() == Status.PASSED) {
-                lifecycle.updateStep(sr -> sr.setStatus(io.qameta.allure.model.Status.PASSED));
-                
-                // Embed screenshot after step
+
+            if (event.getResult().getStatus() == Status.FAILED) {
+
                 embedStepScreenshot(stepText);
-            } else if (event.getResult().getStatus() == Status.FAILED) {
-                lifecycle.updateStep(sr -> sr.setStatus(io.qameta.allure.model.Status.FAILED));
-                
+
                 if (event.getResult().getError() != null) {
-                    lifecycle.updateStep(sr -> sr.setStatusDetails(
-                        new io.qameta.allure.model.StatusDetails()
-                            .setMessage(event.getResult().getError().getMessage())
-                            .setTrace(getStackTrace(event.getResult().getError()))
-                    ));
+
+                    addTextAttachment(
+                            "Failed Step",
+                            stepText + "\n\n"
+                                    + getStackTrace(event.getResult().getError()));
                 }
-                
-                // Embed screenshot on failure
-                embedStepScreenshot(stepText);
-            } else if (event.getResult().getStatus() == Status.SKIPPED) {
-                lifecycle.updateStep(sr -> sr.setStatus(io.qameta.allure.model.Status.SKIPPED));
             }
-            
-            // Stop step
-            lifecycle.stopStep();
-            
-            TestLogger.logDebug("Allure: Step finished - %s - Status: %s", 
-                              stepText, event.getResult().getStatus());
+
+            TestLogger.logDebug(
+                    "Step Finished : %s [%s]",
+                    stepText,
+                    event.getResult().getStatus());
         }
     }
 
@@ -166,26 +128,7 @@ public class AllureReportListener implements Plugin {
         TestLogger.logInfo("Allure: Test run finished");
     }
 
-    /**
-     * Add labels to test case
-     */
-    private void addLabels(TestCaseStarted event) {
-        // Add tags as labels
-        for (String tag : event.getTestCase().getTags()) {
-            String cleanTag = tag.replace("@", "");
-            lifecycle.updateTestCase(tc -> {
-                tc.addLabel(cleanTag, cleanTag);
-                return tc;
-            });
-        }
-        
-        // Determine and add test type label
-        String testType = determineTestType(event.getTestCase().getTags());
-        lifecycle.updateTestCase(tc -> {
-            tc.addLabel("testType", testType);
-            return tc;
-        });
-    }
+
 
     /**
      * Determine test type from tags
@@ -207,19 +150,33 @@ public class AllureReportListener implements Plugin {
      * Embed screenshot after step execution
      */
     private void embedStepScreenshot(String stepName) {
+
         try {
-            ScreenshotManager.ScreenshotRecord screenshot = ScreenshotManager.getLatestScreenshot();
-            if (screenshot != null && screenshot.getImageBytes() != null) {
-                lifecycle.addAttachment(
-                    "Screenshot - " + stepName,
-                    "image/png",
-                    ".png",
-                    new ByteArrayInputStream(screenshot.getImageBytes())
-                );
-                TestLogger.logDebug("Screenshot embedded in Allure for step: %s", stepName);
+
+            ScreenshotManager.ScreenshotRecord screenshot =
+                    ScreenshotManager.getLatestScreenshot();
+
+            if (screenshot != null &&
+                    screenshot.getImageBytes() != null) {
+
+                Allure.addAttachment(
+                        "Screenshot - " + stepName,
+                        "image/png",
+                        new ByteArrayInputStream(
+                                screenshot.getImageBytes()),
+                        ".png");
+
+                TestLogger.logDebug(
+                        "Screenshot attached for step: %s",
+                        stepName);
             }
+
         } catch (Exception e) {
-            TestLogger.logWarn("Failed to embed screenshot in Allure for step %s: %s", stepName, e.getMessage());
+
+            TestLogger.logWarn(
+                    "Failed to attach screenshot for step %s: %s",
+                    stepName,
+                    e.getMessage());
         }
     }
 
@@ -227,19 +184,28 @@ public class AllureReportListener implements Plugin {
      * Embed failure screenshot
      */
     private void embedFailureScreenshot() {
+
         try {
-            ScreenshotManager.ScreenshotRecord screenshot = ScreenshotManager.getLatestScreenshot();
-            if (screenshot != null && screenshot.getImageBytes() != null) {
-                lifecycle.addAttachment(
-                    "Failure Screenshot",
-                    "image/png",
-                    ".png",
-                    new ByteArrayInputStream(screenshot.getImageBytes())
-                );
-                TestLogger.logInfo("Failure screenshot embedded in Allure");
+
+            ScreenshotManager.ScreenshotRecord screenshot =
+                    ScreenshotManager.getLatestScreenshot();
+
+            if (screenshot != null
+                    && screenshot.getImageBytes() != null) {
+
+                Allure.addAttachment(
+                        "Failure Screenshot",
+                        "image/png",
+                        new ByteArrayInputStream(
+                                screenshot.getImageBytes()),
+                        ".png");
             }
+
         } catch (Exception e) {
-            TestLogger.logWarn("Failed to embed failure screenshot in Allure: %s", e.getMessage());
+
+            TestLogger.logWarn(
+                    "Failed to attach screenshot : %s",
+                    e.getMessage());
         }
     }
 
@@ -247,13 +213,35 @@ public class AllureReportListener implements Plugin {
      * Add failure details to test case
      */
     private void addFailureDetails(Throwable error) {
-        lifecycle.updateTestCase(tc -> {
-            tc.setStatusDetails(new io.qameta.allure.model.StatusDetails()
-                .setMessage(error.getMessage())
-                .setTrace(getStackTrace(error))
-            );
-            return tc;
-        });
+
+        try {
+
+            StringBuilder details = new StringBuilder();
+
+            details.append("Exception: ")
+                    .append(error.getClass().getName())
+                    .append("\n\n");
+
+            details.append("Message: ")
+                    .append(error.getMessage())
+                    .append("\n\n");
+
+            details.append("Stack Trace:\n")
+                    .append(getStackTrace(error));
+
+            Allure.addAttachment(
+                    "Failure Details",
+                    "text/plain",
+                    new ByteArrayInputStream(
+                            details.toString().getBytes(StandardCharsets.UTF_8)),
+                    ".txt");
+
+        } catch (Exception e) {
+
+            TestLogger.logWarn(
+                    "Failed to add failure details to Allure: %s",
+                    e.getMessage());
+        }
     }
 
     /**
@@ -299,10 +287,5 @@ public class AllureReportListener implements Plugin {
         }
     }
 
-    /**
-     * Get scenario UUID
-     */
-    public static String getScenarioUuid(String scenarioName) {
-        return scenarioUuids.getOrDefault(scenarioName, "UNKNOWN");
-    }
+
 }

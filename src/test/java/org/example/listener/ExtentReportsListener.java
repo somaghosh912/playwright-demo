@@ -5,6 +5,7 @@ import com.aventstack.extentreports.ExtentTest;
 import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
+import io.cucumber.plugin.ConcurrentEventListener;
 import io.cucumber.plugin.event.*;
 import io.cucumber.plugin.Plugin;
 import org.example.utils.TestLogger;
@@ -15,14 +16,21 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import io.cucumber.plugin.ConcurrentEventListener;
+import io.cucumber.plugin.event.EventPublisher;
+import io.cucumber.plugin.event.PickleStepTestStep;
+import io.cucumber.plugin.event.Status;
+import io.cucumber.plugin.event.TestCaseFinished;
+import io.cucumber.plugin.event.TestCaseStarted;
+import io.cucumber.plugin.event.TestStepFinished;
+import io.cucumber.plugin.event.TestStepStarted;
 
 /**
  * ExtentReports Listener for Cucumber
  * Captures test execution and embeds screenshots automatically
  * Generates beautiful HTML reports with embedded images
  */
-public class ExtentReportsListener implements Plugin {
-
+public class ExtentReportsListener implements ConcurrentEventListener {
     private static ExtentReports extentReports;
     private static final ThreadLocal<ExtentTest> scenarioTest = ThreadLocal.withInitial(() -> null);
     private static final ThreadLocal<ExtentTest> stepTest = ThreadLocal.withInitial(() -> null);
@@ -48,12 +56,10 @@ public class ExtentReportsListener implements Plugin {
                 ExtentSparkReporter sparkReporter = new ExtentSparkReporter(REPORT_FILE);
                 
                 // Configure theme and settings
-                sparkReporter.config()
-                    .setTheme(Theme.DARK)
-                    .setDocumentTitle("Playwright Test Automation Report")
-                    .setReportName("Test Execution Report")
-                    .setTimelineEnabled(true)
-                    .setTimeStampFormat("yyyy-MM-dd HH:mm:ss");
+                sparkReporter.config().setTheme(Theme.DARK);
+                sparkReporter.config().setReportName("Test Execution Report");
+                sparkReporter.config().setDocumentTitle("Playwright Test Automation Report");
+                sparkReporter.config().setTimelineEnabled(true);
                 
                 extentReports = new ExtentReports();
                 extentReports.attachReporter(sparkReporter);
@@ -75,7 +81,7 @@ public class ExtentReportsListener implements Plugin {
     /**
      * Handle test case started event
      */
-    @io.cucumber.plugin.EventListener
+    @Override
     public void setEventPublisher(EventPublisher publisher) {
         publisher.registerHandlerFor(TestCaseStarted.class, this::handleTestCaseStarted);
         publisher.registerHandlerFor(TestCaseFinished.class, this::handleTestCaseFinished);
@@ -92,8 +98,8 @@ public class ExtentReportsListener implements Plugin {
         
         // Create extent test
         ExtentTest test = extentReports.createTest(scenarioName)
-            .assignCategory(event.getTestCase().getKeyword())
-            .assignDevice("Web");
+                .assignCategory(event.getTestCase().getUri().toString())
+                .assignDevice("Web");
         
         // Add tags as metadata
         for (String tag : event.getTestCase().getTags()) {

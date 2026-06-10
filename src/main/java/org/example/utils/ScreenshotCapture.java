@@ -1,7 +1,6 @@
 package org.example.utils;
 
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.ScreenshotAs;
 import com.microsoft.playwright.Page;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
