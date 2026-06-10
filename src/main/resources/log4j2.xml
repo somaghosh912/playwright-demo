@@ -1,18 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
+    <Properties>
+        <Property name="log.dir">target/logs</Property>
+        <Property name="log.pattern">%d{ISO8601} %-5level [%t] %X{TEST_TYPE} %X{SCENARIO} - %msg%n</Property>
+        <Property name="log.pattern.console">%d{HH:mm:ss.SSS} %-5level [%t] - %msg%n</Property>
+    </Properties>
+
     <Appenders>
+        <!-- Console Appender for real-time test execution visibility -->
         <Console name="Console" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} %-5level [%t] %logger{1} - %msg%n"/>
+            <PatternLayout pattern="${log.pattern.console}"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
         </Console>
-        <File name="File" fileName="target/logs/automation.log" append="false">
-            <PatternLayout pattern="%d{ISO8601} %-5level [%t] %logger - %msg%n"/>
+
+        <!-- Main Automation Log File - All logs -->
+        <File name="AutomationLog" fileName="${log.dir}/automation.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
         </File>
+
+        <!-- Web Test Logs - Separated by test type -->
+        <File name="WebLog" fileName="${log.dir}/web_tests.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+        </File>
+
+        <!-- Mobile Test Logs - Separated by test type -->
+        <File name="MobileLog" fileName="${log.dir}/mobile_tests.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+        </File>
+
+        <!-- API Test Logs - Separated by test type -->
+        <File name="ApiLog" fileName="${log.dir}/api_tests.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+        </File>
+
+        <!-- Error Log - Only errors for quick failure analysis -->
+        <File name="ErrorLog" fileName="${log.dir}/errors.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+        </File>
+
+        <!-- Detailed Debug Log - For troubleshooting -->
+        <File name="DebugLog" fileName="${log.dir}/debug.log" append="false">
+            <PatternLayout pattern="${log.pattern}"/>
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+        </File>
+
+        <!-- Async Appender for high-performance logging -->
+        <Async name="AsyncAutomationLog" blocking="false">
+            <AppenderRef ref="AutomationLog"/>
+        </Async>
     </Appenders>
+
     <Loggers>
-        <Logger name="org.example" level="info"/>
-        <Root level="warn">
+        <!-- Logger for org.example package (our code) -->
+        <Logger name="org.example" level="info" additivity="false">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="File"/>
+            <AppenderRef ref="AsyncAutomationLog"/>
+            <AppenderRef ref="ErrorLog"/>
+            <AppenderRef ref="DebugLog"/>
+        </Logger>
+
+        <!-- Type-specific loggers for better filtering -->
+        <Logger name="org.example.steps.web" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="WebLog"/>
+            <AppenderRef ref="ErrorLog"/>
+        </Logger>
+
+        <Logger name="org.example.steps.mobile" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="MobileLog"/>
+            <AppenderRef ref="ErrorLog"/>
+        </Logger>
+
+        <Logger name="org.example.steps.api" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="ApiLog"/>
+            <AppenderRef ref="ErrorLog"/>
+        </Logger>
+
+        <!-- Suppress noisy third-party loggers -->
+        <Logger name="io.cucumber" level="warn"/>
+        <Logger name="org.testng" level="warn"/>
+        <Logger name="io.appium" level="warn"/>
+        <Logger name="io.rest-assured" level="warn"/>
+        <Logger name="com.microsoft.playwright" level="warn"/>
+
+        <!-- Root Logger -->
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncAutomationLog"/>
+            <AppenderRef ref="ErrorLog"/>
         </Root>
     </Loggers>
 </Configuration>
