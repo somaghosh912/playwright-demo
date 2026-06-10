@@ -85,27 +85,24 @@ public class TestHooks {
      * Extracts error messages from scenario execution
      */
     private String captureFailureDetails(Scenario scenario) {
+
         StringBuilder failureDetails = new StringBuilder();
-        
+
         TestLogger.logError("═══════════════════════════════════════════════════════════════");
         TestLogger.logError("SCENARIO FAILED - Failure Details:");
         TestLogger.logError("═══════════════════════════════════════════════════════════════");
-        
-        // Get scenario steps
-        var steps = scenario.getSteps();
-        if (!steps.isEmpty()) {
-            for (var step : steps) {
-                // Check if step result indicates failure
-                TestLogger.logError("Step: %s", step.getText());
-            }
-        }
-        
+
         TestLogger.logError("Scenario Name: %s", scenario.getName());
         TestLogger.logError("Scenario ID: %s", scenario.getId());
-        
-        failureDetails.append("Scenario: ").append(scenario.getName());
-        failureDetails.append(" | ID: ").append(scenario.getId());
-        
+        TestLogger.logError("Scenario Status: %s", scenario.getStatus());
+
+        failureDetails.append("Scenario: ")
+                .append(scenario.getName())
+                .append(" | ID: ")
+                .append(scenario.getId())
+                .append(" | Status: ")
+                .append(scenario.getStatus());
+
         return failureDetails.toString();
     }
 }
